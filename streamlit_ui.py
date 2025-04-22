@@ -56,7 +56,8 @@ if response_mode == "Manual Entry":
     student_id = st.text_input("Student ID")
     student_text = st.text_area("Student Response")
     if st.button("Run Marking"):
-        temp_input = {'Student_ID': student_id, 'Answer_Text': student_text, 'Mark_Points': list(st.session_state.mark_scheme.values())}
+        temp_input = {'Student_ID': student_id, 'Answer_Text': student_text, 'Mark_Points': [{**details, "Label": label}
+    for label, details in st.session_state.mark_scheme.items()]}
         result = updated_matching_logic(temp_input, st.session_state.mark_scheme)
         st.session_state.student_responses = [result]
 else:
