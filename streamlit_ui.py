@@ -115,8 +115,6 @@ if st.session_state.final_responses:
         for pt in res["Mark_Points"]:
             st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}  
 *Rationale*: {pt['Rationale']}")
-
-*Rationale*: {pt['Rationale']}")
         st.markdown(f"**Total Final Score**: {res['Total_Final_Score']}")
 
 # EXPORT PANEL
