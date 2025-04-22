@@ -113,8 +113,7 @@ if st.session_state.final_responses:
         st.subheader(f"Student ID: {res.get('Student_ID', 'unknown')}")
         st.text_area("Answer", res["Answer_Text"], height=100)
         for pt in res["Mark_Points"]:
-            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}  
-*Rationale*: {pt['Rationale']}")
+            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}  \n*Rationale*: {pt['Rationale']}")
         st.markdown(f"**Total Final Score**: {res['Total_Final_Score']}")
 
 # EXPORT PANEL
