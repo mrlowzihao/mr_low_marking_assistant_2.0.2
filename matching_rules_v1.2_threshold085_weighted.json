@@ -1,0 +1,70 @@
+{
+  "P1": {
+    "logic": "AND",
+    "threshold": 0.85,
+    "conditions": [
+      {
+        "phrase": "mice population decreases",
+        "similarity": null
+      },
+      {
+        "phrase": "less food or less grass",
+        "similarity": null
+      }
+    ],
+    "penalties": [],
+    "override_tag": "",
+    "max_score": 1.0
+  },
+  "P2": {
+    "logic": "AND",
+    "threshold": 0.85,
+    "conditions": [
+      {
+        "phrase": "owl population decreases",
+        "similarity": null
+      },
+      {
+        "phrase": "less mice or less prey",
+        "similarity": null
+      }
+    ],
+    "penalties": [],
+    "override_tag": "",
+    "max_score": 1.0
+  },
+  "P3": {
+    "logic": "AND",
+    "threshold": 0.85,
+    "conditions": [
+      {
+        "phrase": "mice population increases",
+        "similarity": null
+      },
+      {
+        "phrase": "more food or more grass",
+        "similarity": null
+      }
+    ],
+    "penalties": [],
+    "override_tag": "Misconception",
+    "max_score": 0.5
+  },
+  "P4": {
+    "logic": "OR",
+    "threshold": 0.85,
+    "conditions": [
+      {
+        "phrase": "ecosystem balance affected",
+        "similarity": null
+      },
+      {
+        "phrase": "food web disrupted",
+        "similarity": null
+      }
+    ],
+    "penalties": [],
+    "override_tag": "Clarity-tolerated",
+    "max_score": 1.0
+  }
+}
