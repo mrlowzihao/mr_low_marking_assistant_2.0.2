@@ -1,7 +1,8 @@
+
 import streamlit as st
 import pandas as pd
 import json
-from matching_logic_v1 import updated_matching_logic
+from matching_logic_v1.3 import updated_matching_logic
 from override_engine import apply_teacher_override, batch_apply_teacher_overrides
 from export_engine import run_export_engine
 
@@ -56,8 +57,14 @@ if response_mode == "Manual Entry":
     student_id = st.text_input("Student ID")
     student_text = st.text_area("Student Response")
     if st.button("Run Marking"):
-        temp_input = {'Student_ID': student_id, 'Answer_Text': student_text, 'Mark_Points': [{**details, "Label": label}
-    for label, details in st.session_state.mark_scheme.items()]}
+        temp_input = {
+            'Student_ID': student_id,
+            'Answer_Text': student_text,
+            'Mark_Points': [
+                {**details, "Label": label}
+                for label, details in st.session_state.mark_scheme.items()
+            ]
+        }
         result = updated_matching_logic(temp_input, st.session_state.mark_scheme)
         st.session_state.student_responses = [result]
 else:
@@ -67,7 +74,14 @@ else:
         df = pd.read_excel(file)
         responses = []
         for _, row in df.iterrows():
-            ans = {"Student_ID": row["Student_ID"], "Answer_Text": row["Answer_Text"], "Mark_Points": list(st.session_state.mark_scheme.values())}
+            ans = {
+                "Student_ID": row["Student_ID"],
+                "Answer_Text": row["Answer_Text"],
+                "Mark_Points": [
+                    {**details, "Label": label}
+                    for label, details in st.session_state.mark_scheme.items()
+                ]
+            }
             res = updated_matching_logic(ans, st.session_state.mark_scheme)
             res["Student_ID"] = row["Student_ID"]
             responses.append(res)
@@ -99,7 +113,9 @@ if st.session_state.final_responses:
         st.subheader(f"Student ID: {res.get('Student_ID', 'unknown')}")
         st.text_area("Answer", res["Answer_Text"], height=100)
         for pt in res["Mark_Points"]:
-            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}\n\n*Rationale*: {pt['Rationale']}")
+            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}
+
+*Rationale*: {pt['Rationale']}")
         st.markdown(f"**Total Final Score**: {res['Total_Final_Score']}")
 
 # EXPORT PANEL
