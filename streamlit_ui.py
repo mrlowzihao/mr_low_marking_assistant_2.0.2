@@ -7,14 +7,12 @@ from override_engine import apply_teacher_override, batch_apply_teacher_override
 from export_engine import run_export_engine
 
 st.set_page_config(layout="wide")
-st.title("🧠 Mr Low's AI Science Marking Assistant v2.1")
+st.title("🧠 Mr Low's AI Science Marking Assistant v2.2")
 
 if 'mark_scheme' not in st.session_state:
     st.session_state.mark_scheme = {}
 if 'student_responses' not in st.session_state:
     st.session_state.student_responses = []
-if 'override_inputs' not in st.session_state:
-    st.session_state.override_inputs = []
 if 'final_responses' not in st.session_state:
     st.session_state.final_responses = []
 if 'override_logs' not in st.session_state:
@@ -24,20 +22,25 @@ st.sidebar.button("🔄 Clear session", on_click=lambda: st.session_state.clear(
 
 # MARK SCHEME PANEL
 st.header("1️⃣ Mark Scheme Entry")
-st.markdown("Enter key concepts for P1 to P4. Toggle on optional points.")
+st.markdown("Enter key concepts for P1 to P4. OR logic is default and supports alternative phrases.")
 
 points = ['P1', 'P2', 'P3', 'P4']
 for point in points:
     if point == 'P1' or st.checkbox(f"Enable {point}"):
         with st.container():
             cols = st.columns([3, 1])
-            phrase = cols[0].text_input(f"{point} Phrase")
+            phrase = cols[0].text_input(f"{point} Key Phrase")
             max_score = cols[1].selectbox(f"{point} Score", [0.5, 1.0], key=f"score_{point}")
-            logic_type = st.radio(f"{point} Logic", ["AND", "OR"], key=f"logic_{point}")
+
+        conditions = [{'phrase': phrase, 'similarity': None}] if phrase else []
+        if st.checkbox(f"Add alternative phrase for {point}"):
+            alt_phrase = st.text_input(f"Alternative phrase for {point}")
+            if alt_phrase:
+                conditions.append({'phrase': alt_phrase, 'similarity': None})
 
         st.session_state.mark_scheme[point] = {
-            'conditions': [{'phrase': phrase, 'similarity': None}] if phrase else [],
-            'logic': logic_type,
+            'conditions': conditions,
+            'logic': 'OR',
             'threshold': 0.85,
             'penalties': [],
             'override_tag': '',
@@ -69,6 +72,7 @@ if response_mode == "Manual Entry":
         }
         result = updated_matching_logic(temp_input, st.session_state.mark_scheme)
         st.session_state.student_responses = [result]
+        st.session_state.final_responses = st.session_state.student_responses.copy()
         st.success("Marking completed.")
 
 elif response_mode == "Batch Upload":
@@ -89,48 +93,41 @@ elif response_mode == "Batch Upload":
             res["Student_ID"] = row["Student_ID"]
             responses.append(res)
         st.session_state.student_responses = responses
+        st.session_state.final_responses = responses.copy()
         st.success("Batch marking completed.")
 
-# SCORE PREVIEW (before override)
-st.header("3️⃣ Score Preview")
-if st.session_state.student_responses:
-    for res in st.session_state.student_responses:
-        st.subheader(f"Student ID: {res.get('Student_ID', 'unknown')}")
-        st.text_area("Answer", res["Answer_Text"], height=100)
-        for pt in res["Mark_Points"]:
-            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}\n\n*Rationale*: {pt['Rationale']}")
-        st.markdown(f"**Total Predicted Score**: {res['Total_Final_Score']}")
-
-# OVERRIDE PANEL
-st.header("4️⃣ Teacher Overrides")
-st.markdown("Tag and comment per point if necessary.")
-overrides = []
-for response in st.session_state.student_responses:
-    override_dict = {}
-    st.subheader(f"Student ID: {response.get('Student_ID', 'unknown')}")
-    for pt in response['Mark_Points']:
-        tag = st.selectbox(f"Override Tag for {pt['Label']} ({pt['Rationale']})", ["", "Clarity-tolerated", "Misconception", "Context Error"], key=f"tag_{response['Answer_Text']}_{pt['Label']}")
-        comment = st.text_input(f"Comment for {pt['Label']}", key=f"comment_{response['Answer_Text']}_{pt['Label']}")
-        override_dict[pt['Label']] = {"Override_Tag": tag, "Comment": comment}
-    overrides.append(override_dict)
-
-if st.button("Apply Overrides"):
-    final, logs = batch_apply_teacher_overrides(st.session_state.student_responses, overrides)
-    st.session_state.final_responses = final
-    st.session_state.override_logs = logs
-    st.success("Overrides applied. Preview updated.")
-
-# FINAL PREVIEW
-st.header("5️⃣ Updated Score Preview (After Overrides)")
+# SCORE PANEL (live view)
+st.header("3️⃣ Score")
 if st.session_state.final_responses:
     for res in st.session_state.final_responses:
         st.subheader(f"Student ID: {res.get('Student_ID', 'unknown')}")
         st.text_area("Answer", res["Answer_Text"], height=100)
         for pt in res["Mark_Points"]:
-            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}\n\n*Rationale*: {pt['Rationale']}")
-        st.markdown(f"**Total Final Score**: {res['Total_Final_Score']}")
+            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt.get('Override_Tag', '')}\n\n*Rationale*: {pt['Rationale']}")
+        st.markdown(f"**Total Score**: {res['Total_Final_Score']}")
+
+# TEACHER OVERRIDE PANEL (optional)
+if st.checkbox("✏️ Enable Teacher Overrides"):
+    st.header("4️⃣ Teacher Overrides")
+    st.markdown("Tag and comment per point if necessary.")
+    overrides = []
+    for response in st.session_state.student_responses:
+        override_dict = {}
+        st.subheader(f"Student ID: {response.get('Student_ID', 'unknown')}")
+        for pt in response['Mark_Points']:
+            tag = st.selectbox(f"Override Tag for {pt['Label']} ({pt['Rationale']})", ["", "Clarity-tolerated", "Misconception", "Context Error"], key=f"tag_{response['Answer_Text']}_{pt['Label']}")
+            comment = st.text_input(f"Comment for {pt['Label']}", key=f"comment_{response['Answer_Text']}_{pt['Label']}")
+            override_dict[pt['Label']] = {"Override_Tag": tag, "Comment": comment}
+        overrides.append(override_dict)
+
+    if st.button("Apply Overrides"):
+        final, logs = batch_apply_teacher_overrides(st.session_state.student_responses, overrides)
+        st.session_state.final_responses = final
+        st.session_state.override_logs = logs
+        st.success("Overrides applied. Score view updated.")
 
 # EXPORT PANEL
-st.header("6️⃣ Export Files")
-if st.session_state.final_responses and st.session_state.override_logs:
-    run_export_engine(st.session_state.final_responses, st.session_state.override_logs)
+st.header("5️⃣ Export Files")
+if st.session_state.final_responses:
+    override_logs = st.session_state.override_logs if 'override_logs' in st.session_state else []
+    run_export_engine(st.session_state.final_responses, override_logs)
