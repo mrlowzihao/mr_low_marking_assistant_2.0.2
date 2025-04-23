@@ -24,7 +24,7 @@ def updated_matching_logic(answer: Dict, matching_rules: Dict) -> Dict:
 
     for point in answer["Mark_Points"]:
         label = point["Label"]
-        predicted_sim = point.get("Predicted_Similarity", 0.0)  # Default to 0.0 if not included
+        predicted_sim = point.get("Predicted_Similarity", 0.0)
         rule = matching_rules.get(label, {})
         
         logic_type = rule.get("logic", "AND")
