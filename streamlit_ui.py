@@ -1,13 +1,13 @@
-
 import streamlit as st
 import pandas as pd
 import json
+import uuid
 from matching_logic_v1 import updated_matching_logic
 from override_engine import apply_teacher_override, batch_apply_teacher_overrides
 from export_engine import run_export_engine
 
 st.set_page_config(layout="wide")
-st.title("🧠 Mr Low's AI Science Marking Assistant v2.0.2")
+st.title("🧠 Mr Low's AI Science Marking Assistant v2.1")
 
 if 'mark_scheme' not in st.session_state:
     st.session_state.mark_scheme = {}
@@ -29,21 +29,24 @@ st.markdown("Enter key concepts for P1 to P4. Toggle on optional points.")
 points = ['P1', 'P2', 'P3', 'P4']
 for point in points:
     if point == 'P1' or st.checkbox(f"Enable {point}"):
+        with st.container():
+            cols = st.columns([3, 1])
+            phrase = cols[0].text_input(f"{point} Phrase")
+            max_score = cols[1].selectbox(f"{point} Score", [0.5, 1.0], key=f"score_{point}")
+            logic_type = st.radio(f"{point} Logic", ["AND", "OR"], key=f"logic_{point}")
+
         st.session_state.mark_scheme[point] = {
-            'conditions': [],
-            'logic': 'AND',
+            'conditions': [{'phrase': phrase, 'similarity': None}] if phrase else [],
+            'logic': logic_type,
             'threshold': 0.85,
             'penalties': [],
             'override_tag': '',
-            'max_score': 1.0
+            'max_score': max_score
         }
-        phrase = st.text_input(f"{point} Phrase")
-        if phrase:
-            st.session_state.mark_scheme[point]['conditions'].append({'phrase': phrase, 'similarity': None})
 
         if st.checkbox(f"Add penalty for {point}"):
             penalty_phrase = st.text_input(f"Penalty Phrase for {point}")
-            deduction = st.slider(f"Penalty Deduction for {point}", 0.0, 0.5, 0.25)
+            deduction = st.selectbox(f"Penalty Deduction for {point}", [0.25, 0.5], key=f"penalty_{point}")
             st.session_state.mark_scheme[point]['penalties'].append({'reason': penalty_phrase, 'deduction': deduction})
 
         if st.checkbox(f"Nullify if matched for {point}"):
@@ -54,20 +57,21 @@ st.header("2️⃣ Student Response Entry")
 response_mode = st.radio("Select Input Mode", ["Manual Entry", "Batch Upload"])
 
 if response_mode == "Manual Entry":
-    student_id = st.text_input("Student ID")
     student_text = st.text_area("Student Response")
     if st.button("Run Marking"):
+        student_id = f"RSP_{uuid.uuid4().hex[:8]}"
         temp_input = {
             'Student_ID': student_id,
             'Answer_Text': student_text,
             'Mark_Points': [
-                {**details, "Label": label}
-                for label, details in st.session_state.mark_scheme.items()
+                {**details, "Label": label} for label, details in st.session_state.mark_scheme.items()
             ]
         }
         result = updated_matching_logic(temp_input, st.session_state.mark_scheme)
         st.session_state.student_responses = [result]
-else:
+        st.success("Marking completed.")
+
+elif response_mode == "Batch Upload":
     st.markdown("**Upload `.xlsx` with columns: Student_ID, Answer_Text**")
     file = st.file_uploader("Upload File", type=["xlsx"])
     if file and st.button("Run Marking"):
@@ -78,18 +82,28 @@ else:
                 "Student_ID": row["Student_ID"],
                 "Answer_Text": row["Answer_Text"],
                 "Mark_Points": [
-                    {**details, "Label": label}
-                    for label, details in st.session_state.mark_scheme.items()
+                    {**details, "Label": label} for label, details in st.session_state.mark_scheme.items()
                 ]
             }
             res = updated_matching_logic(ans, st.session_state.mark_scheme)
             res["Student_ID"] = row["Student_ID"]
             responses.append(res)
         st.session_state.student_responses = responses
+        st.success("Batch marking completed.")
+
+# SCORE PREVIEW (before override)
+st.header("3️⃣ Score Preview")
+if st.session_state.student_responses:
+    for res in st.session_state.student_responses:
+        st.subheader(f"Student ID: {res.get('Student_ID', 'unknown')}")
+        st.text_area("Answer", res["Answer_Text"], height=100)
+        for pt in res["Mark_Points"]:
+            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}\n\n*Rationale*: {pt['Rationale']}")
+        st.markdown(f"**Total Predicted Score**: {res['Total_Final_Score']}")
 
 # OVERRIDE PANEL
-st.header("3️⃣ Teacher Overrides")
-st.markdown("You may tag each point or add clarification comments.")
+st.header("4️⃣ Teacher Overrides")
+st.markdown("Tag and comment per point if necessary.")
 overrides = []
 for response in st.session_state.student_responses:
     override_dict = {}
@@ -104,19 +118,19 @@ if st.button("Apply Overrides"):
     final, logs = batch_apply_teacher_overrides(st.session_state.student_responses, overrides)
     st.session_state.final_responses = final
     st.session_state.override_logs = logs
-    st.success("Overrides applied.")
+    st.success("Overrides applied. Preview updated.")
 
-# PREVIEW PANEL
-st.header("4️⃣ Preview Final Scores")
+# FINAL PREVIEW
+st.header("5️⃣ Updated Score Preview (After Overrides)")
 if st.session_state.final_responses:
     for res in st.session_state.final_responses:
         st.subheader(f"Student ID: {res.get('Student_ID', 'unknown')}")
         st.text_area("Answer", res["Answer_Text"], height=100)
         for pt in res["Mark_Points"]:
-            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}  \n*Rationale*: {pt['Rationale']}")
+            st.markdown(f"**{pt['Label']}** — Score: {pt['Awarded_Score']}, Tag: {pt['Override_Tag']}\n\n*Rationale*: {pt['Rationale']}")
         st.markdown(f"**Total Final Score**: {res['Total_Final_Score']}")
 
 # EXPORT PANEL
-st.header("5️⃣ Export Files")
+st.header("6️⃣ Export Files")
 if st.session_state.final_responses and st.session_state.override_logs:
     run_export_engine(st.session_state.final_responses, st.session_state.override_logs)
