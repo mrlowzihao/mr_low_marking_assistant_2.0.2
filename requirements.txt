@@ -1,7 +1,7 @@
 # Core AI for Semantic Marking
-sentence-transformers==2.2.2
-torch>=1.10
-transformers>=4.21.0
+sentence-transformers>=2.2.2
+huggingface-hub>=0.16.4
+torch>=1.12.1
 
 # UI and Upload
 streamlit>=1.23.0
