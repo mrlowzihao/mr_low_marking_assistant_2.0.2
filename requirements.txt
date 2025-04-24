@@ -1,3 +1,17 @@
-streamlit
-pandas
-openpyxl
+# Core AI for Semantic Marking
+sentence-transformers==2.2.2
+torch>=1.10
+transformers>=4.21.0
+
+# UI and Upload
+streamlit>=1.23.0
+
+# Data Handling
+pandas>=1.5.3
+openpyxl>=3.1.2
+
+# File and Path Utilities
+python-dateutil>=2.8.2
+
+# Optional: accelerate downloads + cache handling
+huggingface-hub>=0.13.3
