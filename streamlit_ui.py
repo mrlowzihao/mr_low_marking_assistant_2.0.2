@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import uuid
-from matching_logic_v1 import updated_matching_logic
+from matching_logic_v2 import updated_matching_logic
 from override_engine import apply_teacher_override, batch_apply_teacher_overrides
 from export_engine import run_export_engine
 
